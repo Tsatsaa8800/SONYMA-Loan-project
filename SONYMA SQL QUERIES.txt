@@ -1,0 +1,101 @@
+---Null value was not a text value, 
+---not the SQL NULL. SO first, changed it to SQL NULL, then changed datatype to integer.
+ALTER TABLE sonyma
+ALTER COLUMN DPAL_CCAL_Amnt int
+UPDATE sonyma
+SET DPAL_CCAL_Amnt = NULL
+WHERE DPAL_CCAL_Amnt = 'Null';
+
+
+--------------------Total Loan amount by Year-----------------------
+
+SELECT purch_year, SUM(orig_loan_amnt) AS Total_loan
+FROM sonyma 
+GROUP BY purch_year
+ORDER BY 1;
+
+-------------------Totals of Current & Previous Year-------------------------------
+
+SELECT Purch_Year, 
+	SUM(Orig_loan_amnt) AS Current_Year_Total, 
+	LAG(SUM(Orig_loan_amnt), 1, 0) OVER (ORDER BY Purch_Year) AS Previous_Year_Total 
+FROM SONYMA WHERE Purch_Year!= 1900
+GROUP BY Purch_Year;
+
+
+--------------Percentage Difference by Year-----------------------------
+
+WITH LoanData AS (
+SELECT 
+    Purch_Year,
+    SUM(Orig_Loan_Amnt) AS Current_Year_Total,
+    LAG(SUM(Orig_Loan_Amnt), 1, 0) OVER (ORDER BY Purch_Year) AS Previous_Year_Total,
+    CASE 
+        WHEN LAG(SUM(Orig_Loan_Amnt), 1, 0) OVER (ORDER BY Purch_Year) = 0 THEN 0
+        ELSE ROUND(((SUM(Orig_Loan_Amnt) - LAG(SUM(Orig_Loan_Amnt), 1, 0) OVER (ORDER BY Purch_Year)) * 100.0 / 
+              LAG(SUM(Orig_Loan_Amnt), 1, 0) OVER (ORDER BY Purch_Year)),2)
+    END AS Percentage_Difference
+FROM SONYMA
+WHERE Purch_Year != 1900  -- Excludes rows where Purch_Year is 1900
+GROUP BY Purch_Year) 
+
+SELECT Purch_year, 
+	Current_Year_Total, 
+	Previous_Year_Total, 
+	FORMAT(Percentage_Difference, 'N2') as Percent_Difference --N2 means round by 2
+FROM LoanData
+ORDER BY Purch_Year;
+
+-------------------Average Loan To Value by Year-----------------------------
+
+SELECT Purch_Year, FORMAT(AVG(orig_ltv),'N2') as Average_Loan_Value 
+FROM SONYMA
+WHERE Purch_Year != 1900
+GROUP BY Purch_Year
+ORDER BY Purch_Year
+
+------------------Percentage Difference in Loan To Value-------------------------------
+
+	WITH LoanData AS (
+SELECT 
+    Purch_Year,
+    AVG(orig_ltv) AS Current_Year_ltv,
+    LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year) AS Previous_Year_ltv,
+    CASE 
+        WHEN LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year) = 0 THEN 0
+        ELSE ROUND(((AVG(orig_ltv) - LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year)) * 100.0 / 
+              LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year)),2)
+    END AS Percentage_Difference
+FROM SONYMA
+WHERE Purch_Year != 1900  
+GROUP BY Purch_Year) 
+
+SELECT Purch_year, 
+	Current_Year_ltv, 
+	Previous_Year_ltv, 
+	FORMAT(Percentage_Difference, 'N2') as Percent_Difference 
+FROM LoanData
+ORDER BY Purch_Year;	
+
+---------------------Percentage difference in CCAL/PPAL--------------------------
+
+WITH LoanData AS (
+SELECT 
+    Purch_Year,
+    SUM(DPAL_CCAL_Amnt) AS CY_DPAL_CCAL,
+    LAG(SUM(DPAL_CCAL_Amnt), 1, 0) OVER (ORDER BY Purch_Year) AS PY_DPAL_CCAL,
+    CASE 
+        WHEN LAG(SUM(DPAL_CCAL_Amnt), 1, 0) OVER (ORDER BY Purch_Year) = 0 THEN 0
+        ELSE ROUND(((SUM(DPAL_CCAL_Amnt) - LAG(SUM(DPAL_CCAL_Amnt), 1, 0) OVER (ORDER BY Purch_Year)) * 100.0 / 
+              LAG(SUM(DPAL_CCAL_Amnt), 1, 0) OVER (ORDER BY Purch_Year)),2)
+    END AS Percentage_Difference
+FROM SONYMA
+WHERE Purch_Year != 1900 
+GROUP BY Purch_Year) 
+
+SELECT Purch_year, 
+	CY_DPAL_CCAL, 
+	PY_DPAL_CCAL, 
+	FORMAT(Percentage_Difference, 'N2') as Percent_Difference 
+FROM LoanData
+ORDER BY Purch_Year;	
