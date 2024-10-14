@@ -1,10 +1,5 @@
----Null value was not a text value, 
----not the SQL NULL. SO first, changed it to SQL NULL, then changed datatype to integer.
-ALTER TABLE sonyma
-ALTER COLUMN DPAL_CCAL_Amnt int
-UPDATE sonyma
-SET DPAL_CCAL_Amnt = NULL
-WHERE DPAL_CCAL_Amnt = 'Null';
+
+
 
 
 --------------------Total Loan amount by Year-----------------------
@@ -19,7 +14,7 @@ ORDER BY 1;
 SELECT Purch_Year, 
 	SUM(Orig_loan_amnt) AS Current_Year_Total, 
 	LAG(SUM(Orig_loan_amnt), 1, 0) OVER (ORDER BY Purch_Year) AS Previous_Year_Total 
-FROM SONYMA WHERE Purch_Year!= 1900
+FROM SONYMA
 GROUP BY Purch_Year;
 
 
@@ -36,13 +31,13 @@ SELECT
               LAG(SUM(Orig_Loan_Amnt), 1, 0) OVER (ORDER BY Purch_Year)),2)
     END AS Percentage_Difference
 FROM SONYMA
-WHERE Purch_Year != 1900  -- Excludes rows where Purch_Year is 1900
+WHERE 
 GROUP BY Purch_Year) 
 
 SELECT Purch_year, 
 	Current_Year_Total, 
 	Previous_Year_Total, 
-	FORMAT(Percentage_Difference, 'N2') as Percent_Difference --N2 means round by 2
+	FORMAT(Percentage_Difference, 'N2') as Percent_Difference 
 FROM LoanData
 ORDER BY Purch_Year;
 
@@ -50,7 +45,6 @@ ORDER BY Purch_Year;
 
 SELECT Purch_Year, FORMAT(AVG(orig_ltv),'N2') as Average_Loan_Value 
 FROM SONYMA
-WHERE Purch_Year != 1900
 GROUP BY Purch_Year
 ORDER BY Purch_Year
 
@@ -66,8 +60,7 @@ SELECT
         ELSE ROUND(((AVG(orig_ltv) - LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year)) * 100.0 / 
               LAG(AVG(orig_ltv), 1, 0) OVER (ORDER BY Purch_Year)),2)
     END AS Percentage_Difference
-FROM SONYMA
-WHERE Purch_Year != 1900  
+FROM SONYMA 
 GROUP BY Purch_Year) 
 
 SELECT Purch_year, 
@@ -90,7 +83,6 @@ SELECT
               LAG(SUM(DPAL_CCAL_Amnt), 1, 0) OVER (ORDER BY Purch_Year)),2)
     END AS Percentage_Difference
 FROM SONYMA
-WHERE Purch_Year != 1900 
 GROUP BY Purch_Year) 
 
 SELECT Purch_year, 
